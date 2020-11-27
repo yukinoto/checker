@@ -1,123 +1,112 @@
-#include <iostream>
-#include <cstdio>
-using namespace std;
-//题目中给的p
-int p;
-//暂存数列的数组
-long long a[100007];
-//线段树结构体，v表示此时的答案，mul表示乘法意义上的lazytag，add是加法意义上的
-struct node{
-    long long v, mul, add;
-}st[400007];
-//buildtree
-void bt(int root, int l, int r){
-//初始化lazytag
-    st[root].mul=1;
-    st[root].add=0;
-    if(l==r){
-        st[root].v=a[l];
-    }
-    else{
-        int m=(l+r)/2;
-        bt(root*2, l, m);
-        bt(root*2+1, m+1, r);
-        st[root].v=st[root*2].v+st[root*2+1].v;
-    }
-    st[root].v%=p;
-    return ;
-}
-//核心代码，维护lazytag
-void pushdown(int root, int l, int r){
-    int m=(l+r)/2;
-//根据我们规定的优先度，儿子的值=此刻儿子的值*爸爸的乘法lazytag+儿子的区间长度*爸爸的加法lazytag
-    st[root*2].v=(st[root*2].v*st[root].mul+st[root].add*(m-l+1))%p;
-    st[root*2+1].v=(st[root*2+1].v*st[root].mul+st[root].add*(r-m))%p;
-//很好维护的lazytag
-    st[root*2].mul=(st[root*2].mul*st[root].mul)%p;
-    st[root*2+1].mul=(st[root*2+1].mul*st[root].mul)%p;
-    st[root*2].add=(st[root*2].add*st[root].mul+st[root].add)%p;
-    st[root*2+1].add=(st[root*2+1].add*st[root].mul+st[root].add)%p;
-//把父节点的值初始化
-    st[root].mul=1;
-    st[root].add=0;
-    return ;
-}
-//update1，乘法，stdl此刻区间的左边，stdr此刻区间的右边，l给出的左边，r给出的右边
-void ud1(int root, int stdl, int stdr, int l, int r, long long k){
-//假如本区间和给出的区间没有交集
-    if(r<stdl || stdr<l){
-        return ;
-    }
-//假如给出的区间包含本区间
-    if(l<=stdl && stdr<=r){
-        st[root].v=(st[root].v*k)%p;
-        st[root].mul=(st[root].mul*k)%p;
-        st[root].add=(st[root].add*k)%p;
-        return ;
-    }
-//假如给出的区间和本区间有交集，但是也有不交叉的部分
-//先传递lazytag
-    pushdown(root, stdl, stdr);
-    int m=(stdl+stdr)/2;
-    ud1(root*2, stdl, m, l, r, k);
-    ud1(root*2+1, m+1, stdr, l, r, k);
-    st[root].v=(st[root*2].v+st[root*2+1].v)%p;
-    return ;
-}
-//update2，加法，和乘法同理
-void ud2(int root, int stdl, int stdr, int l, int r, long long k){
-    if(r<stdl || stdr<l){
-        return ;
-    }
-    if(l<=stdl && stdr<=r){
-        st[root].add=(st[root].add+k)%p;
-        st[root].v=(st[root].v+k*(stdr-stdl+1))%p;
-        return ;
-    }
-    pushdown(root, stdl, stdr);
-    int m=(stdl+stdr)/2;
-    ud2(root*2, stdl, m, l, r, k);
-    ud2(root*2+1, m+1, stdr, l, r, k);
-    st[root].v=(st[root*2].v+st[root*2+1].v)%p;
-    return ;
-}
-//访问，和update一样
-long long query(int root, int stdl, int stdr, int l, int r){
-    if(r<stdl || stdr<l){
-        return 0;
-    }
-    if(l<=stdl && stdr<=r){
-        return st[root].v;
-    }
-    pushdown(root, stdl, stdr);
-    int m=(stdl+stdr)/2;
-    return (query(root*2, stdl, m, l, r)+query(root*2+1, m+1, stdr, l, r))%p;
-}
-int main(){
-	freopen("p3373.in","r",stdin);
-	freopen("ans.out","w",stdout);
-    int n, m;
-    scanf("%d%d%d", &n, &m, &p);
-    for(int i=1; i<=n; i++){
-        scanf("%lld", &a[i]);
-    }
-    bt(1, 1, n);
-    while(m--){
-        int chk;
-        scanf("%d", &chk);
-        int x, y;
-        long long k;
-        if(chk==1){
-            scanf("%d%d%lld", &x, &y, &k);
-            ud1(1, 1, n, x, y, k);
+#include<stdio.h>
+long long c[500010];
+long long p;
+struct sgt{
+    long long sum[2000010];
+    long long addv[2000010];
+    long long mulv[2000010];
+    void build(int o,int l,int r){
+        addv[o]=0;
+        mulv[o]=1;
+        if(l==r)sum[o]=c[l];
+        else{
+            int mid=(l+r)>>1;
+            int lson=o<<1;
+            int rson=lson|1;
+            build(lson,l,mid);
+            build(rson,mid+1,r);
+            sum[o]=(sum[lson]+sum[rson])%p;
         }
-        else if(chk==2){
-            scanf("%d%d%lld", &x, &y, &k);
-            ud2(1, 1, n, x, y, k);
+    }    
+    void push_down(int o,int l,int r,int mid,int lson,int rson){
+        mulv[lson]=(mulv[lson]*mulv[o])%p;
+        mulv[rson]=(mulv[rson]*mulv[o])%p;
+        addv[lson]=(addv[lson]*mulv[o])%p;
+        addv[rson]=(addv[rson]*mulv[o])%p;
+        sum[lson]=(sum[lson]*mulv[o])%p;
+        sum[rson]=(sum[rson]*mulv[o])%p;
+        mulv[o]=1;
+        addv[lson]=(addv[lson]+addv[o])%p;
+        addv[rson]=(addv[rson]+addv[o])%p;
+        sum[lson]=(sum[lson]+(mid-l+1)*addv[o])%p;
+        sum[rson]=(sum[rson]+(r-mid)*addv[o])%p;
+        addv[o]=0;
+    }
+    void addall(int o,int l,int r,int a,int b,int x){
+        if(l>=a && r<=b){
+            addv[o]=(addv[o]+x)%p;
+            sum[o]=(sum[o]+(r-l+1)*x)%p;
+            return;
         }
         else{
-            scanf("%d%d", &x, &y);
-            printf("%lld\n", query(1, 1, n, x, y));
+            int mid=(l+r)>>1;
+            int lson=o<<1;
+            int rson=lson|1;
+            if(mulv[o]!=1 || addv[o])push_down(o,l,r,mid,lson,rson);
+            if(a<=mid)addall(lson,l,mid,a,b,x);
+            if(b>mid)addall(rson,mid+1,r,a,b,x);
+            sum[o]=(sum[lson]+sum[rson])%p;
+        }
+    }
+    void mulall(int o,int l,int r,int a,int b,int x){
+        if(l>=a && r<=b){
+            mulv[o]=(mulv[o]*x)%p;
+            addv[o]=(addv[o]*x)%p;
+            sum[o]=(sum[o]*x)%p;
+            return;
+        }
+        else{
+            int mid=(l+r)>>1;
+            int lson=o<<1;
+            int rson=lson|1;
+            if(mulv[o]!=1 || addv[o])push_down(o,l,r,mid,lson,rson);
+            if(a<=mid)mulall(lson,l,mid,a,b,x);
+            if(b>mid)mulall(rson,mid+1,r,a,b,x);
+            sum[o]=(sum[lson]+sum[rson])%p;
+        }
+    }
+    long long query(int o,int l,int r,int a,int b){
+        if(l>=a && r<=b)return sum[o]%p;
+        else{
+            int mid=(l+r)>>1;
+            int lson=o<<1;
+            int rson=lson|1;
+            long long ans=0;
+            if(mulv[o]!=1 || addv[o])push_down(o,l,r,mid,lson,rson);
+            if(a<=mid)ans+=query(lson,l,mid,a,b);
+            if(b>mid)ans+=query(rson,mid+1,r,a,b);
+            return ans%p;
+        }
+    }
+};
+sgt tree;
+int n,m,i,f;
+int x,y;
+long long k;
+int main(){
+    freopen("p3373.in","r",stdin);
+    freopen("ans.out","w",stdout);
+    scanf("%d%d%d",&n,&m,&p);
+    for(i=1;i<=n;i++)scanf("%d",&c[i]);
+    tree.build(1,1,n);
+    for(i=1;i<=m;i++){
+        scanf("%d",&f);
+        switch(f){
+            case 1:{
+                scanf("%d%d%d",&x,&y,&k);
+                tree.mulall(1,1,n,x,y,k);
+                break;
+            }
+            case 2:{
+                scanf("%d%d%d",&x,&y,&k);
+                tree.addall(1,1,n,x,y,k);
+                break;
+            }
+            case 3:{
+                scanf("%d%d",&x,&y);
+                printf("%lld\n",tree.query(1,1,n,x,y));
+                break;
+            }    
         }
     }
     return 0;

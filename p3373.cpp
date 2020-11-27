@@ -183,7 +183,7 @@ inline void work()
 
 int main()
 {
-	freopen("p373.in","r",stdin);
+	freopen("p3373.in","r",stdin);
 	freopen("p3373.out","w",stdout);
 	init();
 	for(int i=0;i<m;i++)

@@ -23,6 +23,7 @@ int main(int argc,char *argv[])
 		end=clock();
 		printf("Ans :%dms\n",end-start);
 		system("fc p3373.out ans.out");
+		system("pause");
 		printf("\n");
 	}
 	return 0;
